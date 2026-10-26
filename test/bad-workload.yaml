@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-insecure-workload
+  namespace: default
+  labels:
+    app: bad-workload
+spec:
+  securityContext:
+    runAsNonRoot: false
+    runAsUser: 0
+  containers:
+    - name: insecure-container
+      image: nginx:latest
+      # Intentionally omitting resources (requests & limits)
+      # Intentionally running as root
+      # Intentionally using ':latest' tag
