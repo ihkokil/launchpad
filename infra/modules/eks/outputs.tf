@@ -22,3 +22,4 @@ output "node_role_arn" {
   description = "Node IAM Role ARN"
   value       = aws_iam_role.node.arn
 }
+

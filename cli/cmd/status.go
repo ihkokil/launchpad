@@ -60,3 +60,4 @@ var (
 func init() {
 	statusCmd.Flags().StringVarP(&statusNamespace, "namespace", "n", "default", "Kubernetes namespace")
 }
+

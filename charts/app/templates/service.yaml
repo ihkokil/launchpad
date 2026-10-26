@@ -13,3 +13,4 @@ spec:
       name: http
   selector:
     {{- include "launchpad-app.selectorLabels" . | nindent 4 }}
+

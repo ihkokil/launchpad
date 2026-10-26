@@ -66,3 +66,4 @@ jobs:
       - name: Validate Kyverno Policies
         run: |
           kyverno apply policies/kyverno/ --resource test/bad-workload.yaml || true
+

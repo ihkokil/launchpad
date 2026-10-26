@@ -92,3 +92,4 @@ servicemonitor.monitoring.coreos.com/compliant-app-launchpad-app created
 ```
 
 **Result:** Zero warnings, 100% compliance out-of-the-box. Developers are protected by default without having to manually research Kubernetes security benchmarks.
+

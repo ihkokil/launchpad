@@ -15,3 +15,4 @@ var versionCmd = &cobra.Command{
 			version, commit, date, runtime.GOOS, runtime.GOARCH)
 	},
 }
+

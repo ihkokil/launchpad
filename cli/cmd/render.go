@@ -89,3 +89,4 @@ func init() {
 	renderCmd.Flags().StringVarP(&renderServicesDir, "services-dir", "s", "services", "Directory containing service specifications")
 	renderCmd.Flags().StringVarP(&renderOutputDir, "out-dir", "o", "gitops/clusters/local/apps", "Output directory for GitOps manifests")
 }
+

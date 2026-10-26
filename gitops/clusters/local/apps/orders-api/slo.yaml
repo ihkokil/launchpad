@@ -17,8 +17,8 @@ spec:
       description: "99.9% of HTTP requests respond with non-5xx status codes over a 30-day rolling window."
       sli:
         events:
-          error_query: sum(rate(http_requests_total{job="orders-api",status=~"5.."}[{{.window}}]))
-          total_query: sum(rate(http_requests_total{job="orders-api"}[{{.window}}]))
+          errorQuery: sum(rate(http_requests_total{job="orders-api",status=~"5.."}[{{.window}}]))
+          totalQuery: sum(rate(http_requests_total{job="orders-api"}[{{.window}}]))
       alerting:
         name: orders-api-HighErrorRate
         labels:
@@ -28,10 +28,10 @@ spec:
           summary: "High error budget burn rate on orders-api"
           runbook_url: "https://runbooks.launchpad.io/services/orders-api/availability"
           dashboard_url: "http://localhost:3000/d/launchpad-slo/orders-api"
-        page_alert:
+        pageAlert:
           labels:
             severity: page
-        ticket_alert:
+        ticketAlert:
           labels:
             severity: warning
     - name: latency-p95
@@ -39,8 +39,8 @@ spec:
       description: "95th percentile latency must remain below 250ms."
       sli:
         events:
-          error_query: sum(rate(http_request_duration_seconds_bucket{job="orders-api",le=~"0.[0-9]+"}[{{.window}}])) - sum(rate(http_request_duration_seconds_bucket{job="orders-api",le="0.25"}[{{.window}}]))
-          total_query: sum(rate(http_request_duration_seconds_count{job="orders-api"}[{{.window}}]))
+          errorQuery: sum(rate(http_request_duration_seconds_bucket{job="orders-api",le=~"0.[0-9]+"}[{{.window}}])) - sum(rate(http_request_duration_seconds_bucket{job="orders-api",le="0.25"}[{{.window}}]))
+          totalQuery: sum(rate(http_request_duration_seconds_count{job="orders-api"}[{{.window}}]))
       alerting:
         name: orders-api-HighLatency
         labels:

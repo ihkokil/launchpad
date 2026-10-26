@@ -12,3 +12,4 @@ output "private_subnet_ids" {
   description = "List of private subnet IDs for EKS"
   value       = aws_subnet.private[*].id
 }
+

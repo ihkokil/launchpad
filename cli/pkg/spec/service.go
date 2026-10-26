@@ -108,3 +108,4 @@ func LoadAllServices(dir string) ([]*ServiceSpec, error) {
 	}
 	return services, nil
 }
+

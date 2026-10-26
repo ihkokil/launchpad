@@ -33,3 +33,4 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(versionCmd)
 }
+

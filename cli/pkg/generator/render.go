@@ -83,8 +83,8 @@ spec:
       description: "99.9% of HTTP requests respond with non-5xx status codes over a 30-day rolling window."
       sli:
         events:
-          error_query: sum(rate(http_requests_total{job="{{ .Name }}",status=~"5.."}[{{"{{"}}.window{{"}}"}}]))
-          total_query: sum(rate(http_requests_total{job="{{ .Name }}"}[{{"{{"}}.window{{"}}"}}]))
+          errorQuery: sum(rate(http_requests_total{job="{{ .Name }}",status=~"5.."}[{{"{{"}}.window{{"}}"}}]))
+          totalQuery: sum(rate(http_requests_total{job="{{ .Name }}"}[{{"{{"}}.window{{"}}"}}]))
       alerting:
         name: {{ .Name }}-HighErrorRate
         labels:
@@ -94,10 +94,10 @@ spec:
           summary: "High error budget burn rate on {{ .Name }}"
           runbook_url: "https://runbooks.launchpad.io/services/{{ .Name }}/availability"
           dashboard_url: "http://localhost:3000/d/launchpad-slo/{{ .Name }}"
-        page_alert:
+        pageAlert:
           labels:
             severity: page
-        ticket_alert:
+        ticketAlert:
           labels:
             severity: warning
     - name: latency-p95
@@ -105,8 +105,8 @@ spec:
       description: "95th percentile latency must remain below {{ .SLO.LatencyP95MS }}ms."
       sli:
         events:
-          error_query: sum(rate(http_request_duration_seconds_bucket{job="{{ .Name }}",le=~"0.[0-9]+"}[{{"{{"}}.window{{"}}"}}])) - sum(rate(http_request_duration_seconds_bucket{job="{{ .Name }}",le="{{ printf "%.2f" (div (float64 .SLO.LatencyP95MS) 1000.0) }}"}[{{"{{"}}.window{{"}}"}}]))
-          total_query: sum(rate(http_request_duration_seconds_count{job="{{ .Name }}"}[{{"{{"}}.window{{"}}"}}]))
+          errorQuery: sum(rate(http_request_duration_seconds_bucket{job="{{ .Name }}",le=~"0.[0-9]+"}[{{"{{"}}.window{{"}}"}}])) - sum(rate(http_request_duration_seconds_bucket{job="{{ .Name }}",le="{{ printf "%.2f" (div (float64 .SLO.LatencyP95MS) 1000.0) }}"}[{{"{{"}}.window{{"}}"}}]))
+          totalQuery: sum(rate(http_request_duration_seconds_count{job="{{ .Name }}"}[{{"{{"}}.window{{"}}"}}]))
       alerting:
         name: {{ .Name }}-HighLatency
         labels:
@@ -151,3 +151,4 @@ func RenderSlothSLO(s *spec.ServiceSpec) ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 }
+

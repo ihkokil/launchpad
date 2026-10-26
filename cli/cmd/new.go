@@ -86,3 +86,4 @@ func init() {
 	newCmd.Flags().IntVarP(&newPort, "port", "p", 8080, "Application port")
 	newCmd.Flags().StringVar(&newOutDir, "out-dir", "services", "Directory to save service manifest")
 }
+

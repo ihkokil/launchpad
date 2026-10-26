@@ -153,3 +153,4 @@ jobs:
             git commit -m "chore(release): bump ${{ inputs.service_name }} to git-${{ github.sha }}"
             git push origin main
           fi
+
