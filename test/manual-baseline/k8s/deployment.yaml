@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manual-orders-api
+  namespace: default
+  labels:
+    app.kubernetes.io/name: manual-orders-api
+    app.kubernetes.io/instance: manual-orders-api-v1
+    app.kubernetes.io/part-of: e-commerce
+    app.kubernetes.io/managed-by: manual
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: manual-orders-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: manual-orders-api
+        app.kubernetes.io/instance: manual-orders-api-v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: app
+          image: manual-orders-api:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "8080"
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
