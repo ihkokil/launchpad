@@ -1,0 +1,31 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow ':latest' Image Tag
+    policies.kyverno.io/category: Supply Chain Security & Immutability
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      The ':latest' image tag is mutable and unpredictable, making rollbacks unreliable.
+      Workloads must specify an immutable semantic version or git commit SHA.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: validate-image-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - default
+                - staging
+                - production
+      validate:
+        message: "Using ':latest' or untagged images is prohibited. Use a semver or commit SHA tag."
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest & ?*"

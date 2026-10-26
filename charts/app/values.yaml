@@ -1,0 +1,137 @@
+# Default values for launchpad-app (Golden Path Chart).
+# These provide production-ready security, reliability, and autoscaling by default.
+
+replicaCount: 2
+
+owner: "platform-team"
+tier: "standard" # standard (2 replicas, minAvailable: 1) | critical (3+ replicas, strict PDB)
+
+image:
+  repository: ""
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion. Must NOT be 'latest'.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+# Zero-Trust Pod Security Context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+# Strict Container Hardening
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Probes for self-healing and zero-downtime rollouts
+probes:
+  liveness:
+    enabled: true
+    path: /healthz
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+  startup:
+    enabled: true
+    path: /healthz
+    initialDelaySeconds: 2
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 10
+
+# Autoscaling via HPA
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+# PodDisruptionBudget ensuring high availability during node drains/updates
+pdb:
+  enabled: true
+  minAvailable: 1
+
+# Topology Spread Constraints to distribute across nodes and AZs
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
+# Zero-Trust Default-Deny NetworkPolicy
+networkPolicy:
+  enabled: true
+  allowIngressFromMonitoring: true
+  allowIngressFromIngress: true
+  additionalIngressRules: []
+  allowEgressToKubeDNS: true
+  additionalEgressRules: []
+
+# Prometheus Operator ServiceMonitor
+serviceMonitor:
+  enabled: true
+  path: /metrics
+  interval: 15s
+  scrapeTimeout: 10s
+  labels:
+    release: kube-prometheus-stack
+
+env: {}
+envFrom: []
+
+volumes: []
+volumeMounts: []
