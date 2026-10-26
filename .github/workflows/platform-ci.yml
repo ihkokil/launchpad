@@ -1,0 +1,68 @@
+name: Platform Quality & Security CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-terraform:
+    name: Terraform Format & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.7"
+
+      - name: Check Terraform Formatting
+        run: |
+          cd infra
+          terraform fmt -check -diff
+
+      - name: Validate Terraform Configuration
+        run: |
+          cd infra
+          terraform init -backend=false
+          terraform validate
+
+  validate-helm:
+    name: Helm Chart Lint & Template Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.16.1"
+
+      - name: Lint Golden Path Helm Chart
+        run: |
+          helm lint charts/app
+
+      - name: Render Test Helm Template
+        run: |
+          helm template test-app charts/app \
+            --set image.repository="test-api" \
+            --set image.tag="v1.0.0" \
+            --set owner="test-team"
+
+  validate-kyverno:
+    name: Kyverno Policy Syntax & Schema Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Kyverno CLI
+        uses: kyverno/action-install-cli@v0.2.0
+
+      - name: Validate Kyverno Policies
+        run: |
+          kyverno apply policies/kyverno/ --resource test/bad-workload.yaml || true

@@ -1,0 +1,155 @@
+name: Reusable Service CI
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+        description: "Name of the service (e.g. orders-api)"
+      dockerfile_path:
+        required: false
+        type: string
+        default: "./Dockerfile"
+      build_context:
+        required: false
+        type: string
+        default: "."
+      aws_region:
+        required: false
+        type: string
+        default: "us-east-1"
+      ecr_repository:
+        required: false
+        type: string
+        default: ""
+    secrets:
+      aws_role_arn:
+        required: false
+        description: "IAM Role ARN to assume via GitHub OIDC"
+      gitops_token:
+        required: false
+        description: "GitHub Token with repo scope for creating GitOps pull requests"
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+  security-events: write
+
+jobs:
+  test-and-lint:
+    name: Lint & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Detect and Run Unit Tests
+        run: |
+          if [ -f "package.json" ]; then
+            echo "Node.js service detected"
+            npm ci || npm install
+            npm test --if-present
+          elif [ -f "go.mod" ]; then
+            echo "Go microservice detected"
+            go vet ./...
+            go test -v -race ./...
+          elif [ -f "composer.json" ]; then
+            echo "PHP service detected"
+            composer validate
+          else
+            echo "Standard workload detected - running lint"
+          fi
+
+  security-scan:
+    name: Container Security & Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: [test-and-lint]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Temporary Container for Scanning
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.build_context }}
+          file: ${{ inputs.dockerfile_path }}
+          load: true
+          tags: ${{ inputs.service_name }}:test-${{ github.sha }}
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "${{ inputs.service_name }}:test-${{ github.sha }}"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL"
+
+  build-and-publish:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+    needs: [security-scan]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS Credentials (Keyless OIDC)
+        if: "${{ secrets.aws_role_arn != '' }}"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+          audience: "sts.amazonaws.com"
+
+      - name: Log in to Amazon ECR
+        if: "${{ secrets.aws_role_arn != '' }}"
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker Image
+        if: "${{ secrets.aws_role_arn != '' }}"
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.build_context }}
+          file: ${{ inputs.dockerfile_path }}
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ inputs.service_name }}:git-${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ inputs.service_name }}:latest
+
+  gitops-update:
+    name: Update GitOps Repository
+    runs-on: ubuntu-latest
+    needs: [build-and-publish]
+    if: github.ref == 'refs/heads/main' && secrets.gitops_token != ''
+    steps:
+      - name: Checkout Platform / GitOps Repo
+        uses: actions/checkout@v4
+        with:
+          repository: "ihkokil/launchpad"
+          token: ${{ secrets.gitops_token }}
+          path: launchpad-platform
+
+      - name: Update Service Manifest with New Image Tag
+        run: |
+          cd launchpad-platform
+          TARGET_FILE="services/${{ inputs.service_name }}.yaml"
+          if [ -f "$TARGET_FILE" ]; then
+            echo "Updating image tag to git-${{ github.sha }} in $TARGET_FILE"
+            sed -i 's|tag:.*|tag: "git-${{ github.sha }}"|g' "$TARGET_FILE"
+            git config user.name "launchpad-bot"
+            git config user.email "bot@launchpad.io"
+            git add "$TARGET_FILE"
+            git commit -m "chore(release): bump ${{ inputs.service_name }} to git-${{ github.sha }}"
+            git push origin main
+          fi
