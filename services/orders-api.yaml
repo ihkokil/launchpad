@@ -1,0 +1,16 @@
+name: orders-api
+owner: team-checkout
+tier: standard
+runtime: node
+port: 8080
+env:
+    NODE_ENV: production
+resources:
+    cpu: 100m
+    memory: 128Mi
+slo:
+    availability: 99.9
+    latency_p95_ms: 250
+image:
+    repository: orders-api
+    tag: v0.1.0
